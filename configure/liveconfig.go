@@ -116,16 +116,6 @@ func init() {
 	pflag.Parse()
 	Config.BindPFlags(pflag.CommandLine)
 
-	// File
-	Config.SetConfigFile(Config.GetString("config_file"))
-	Config.AddConfigPath(".")
-	err := Config.ReadInConfig()
-	if err != nil {
-		log.Warning(err)
-		log.Info("Using default config")
-	} else {
-		Config.MergeInConfig()
-	}
 
 	// Environment
 	replacer := strings.NewReplacer(".", "_")
@@ -142,16 +132,7 @@ func init() {
 	log.Debugf("Current configurations: \n%# v", pretty.Formatter(c))
 }
 
-func CheckAppName(appname string) bool {
-	apps := Applications{}
-	Config.UnmarshalKey("server", &apps)
-	for _, app := range apps {
-		if app.Appname == appname {
-			return app.Live
-		}
-	}
-	return false
-}
+
 
 func GetStaticPushUrlList(appname string) ([]string, bool) {
 	apps := Applications{}
