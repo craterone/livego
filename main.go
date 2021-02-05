@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/gwuhaolin/livego/configure"
-	"github.com/gwuhaolin/livego/protocol/api"
 	"github.com/gwuhaolin/livego/protocol/rtmp"
 	"net"
 	"path"
@@ -18,7 +16,7 @@ var VERSION = "master"
 var rtmpAddr string
 
 func startRtmp(stream *rtmp.RtmpStream) {
-	rtmpAddr = configure.Config.GetString("rtmp_addr")
+	rtmpAddr = ":1935"
 
 	rtmpListen, err := net.Listen("tcp", rtmpAddr)
 	if err != nil {
@@ -37,27 +35,6 @@ func startRtmp(stream *rtmp.RtmpStream) {
 	}()
 	log.Info("RTMP Listen On ", rtmpAddr)
 	rtmpServer.Serve(rtmpListen)
-}
-
-func startAPI(stream *rtmp.RtmpStream) {
-	apiAddr := configure.Config.GetString("api_addr")
-
-	if apiAddr != "" {
-		opListen, err := net.Listen("tcp", apiAddr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		opServer := api.NewServer(stream, rtmpAddr)
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Error("HTTP-API server panic: ", r)
-				}
-			}()
-			log.Info("HTTP-API listen On ", apiAddr)
-			opServer.Serve(opListen)
-		}()
-	}
 }
 
 func init() {
@@ -87,15 +64,7 @@ func main() {
         version: %s
 	`, VERSION)
 
-	apps := configure.Applications{}
-	configure.Config.UnmarshalKey("server", &apps)
-	for _, app := range apps {
-		stream := rtmp.NewRtmpStream()
+	stream := rtmp.NewRtmpStream()
 
-		if app.Api {
-			startAPI(stream)
-		}
-
-		startRtmp(stream)
-	}
+	startRtmp(stream)
 }

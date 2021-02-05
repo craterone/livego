@@ -11,7 +11,6 @@ import (
 	"github.com/gwuhaolin/livego/utils/uid"
 
 	"github.com/gwuhaolin/livego/av"
-	"github.com/gwuhaolin/livego/configure"
 	"github.com/gwuhaolin/livego/container/flv"
 	"github.com/gwuhaolin/livego/protocol/rtmp/core"
 
@@ -24,8 +23,8 @@ const (
 )
 
 var (
-	readTimeout  = configure.Config.GetInt("read_timeout")
-	writeTimeout = configure.Config.GetInt("write_timeout")
+	readTimeout  = 10
+	writeTimeout = 10
 )
 
 type Client struct {
@@ -111,14 +110,7 @@ func (s *Server) handleConn(conn *core.Conn) error {
 		return err
 	}
 
-	appname, name, _ := connServer.GetInfo()
-
-	if ret := configure.CheckAppName(appname); !ret {
-		err := fmt.Errorf("application name=%s is not configured", appname)
-		conn.Close()
-		log.Error("CheckAppName err: ", err)
-		return err
-	}
+	_, name, _ := connServer.GetInfo()
 
 	log.Debugf("handleConn: IsPublisher=%v", connServer.IsPublisher())
 	if connServer.IsPublisher() {
