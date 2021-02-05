@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/gwuhaolin/livego/configure"
 	"github.com/gwuhaolin/livego/protocol/api"
-	"github.com/gwuhaolin/livego/protocol/hls"
-	"github.com/gwuhaolin/livego/protocol/httpflv"
 	"github.com/gwuhaolin/livego/protocol/rtmp"
 	"net"
 	"path"
@@ -17,29 +15,9 @@ import (
 
 var VERSION = "master"
 
-func startHls() *hls.Server {
-	hlsAddr := configure.Config.GetString("hls_addr")
-	hlsListen, err := net.Listen("tcp", hlsAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	hlsServer := hls.NewServer()
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error("HLS server panic: ", r)
-			}
-		}()
-		log.Info("HLS listen On ", hlsAddr)
-		hlsServer.Serve(hlsListen)
-	}()
-	return hlsServer
-}
-
 var rtmpAddr string
 
-func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
+func startRtmp(stream *rtmp.RtmpStream) {
 	rtmpAddr = configure.Config.GetString("rtmp_addr")
 
 	rtmpListen, err := net.Listen("tcp", rtmpAddr)
@@ -49,13 +27,8 @@ func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
 
 	var rtmpServer *rtmp.Server
 
-	if hlsServer == nil {
-		rtmpServer = rtmp.NewRtmpServer(stream, nil)
-		log.Info("HLS server disable....")
-	} else {
-		rtmpServer = rtmp.NewRtmpServer(stream, hlsServer)
-		log.Info("HLS server enable....")
-	}
+	rtmpServer = rtmp.NewRtmpServer(stream, nil)
+	log.Info("HLS server disable....")
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -64,26 +37,6 @@ func startRtmp(stream *rtmp.RtmpStream, hlsServer *hls.Server) {
 	}()
 	log.Info("RTMP Listen On ", rtmpAddr)
 	rtmpServer.Serve(rtmpListen)
-}
-
-func startHTTPFlv(stream *rtmp.RtmpStream) {
-	httpflvAddr := configure.Config.GetString("httpflv_addr")
-
-	flvListen, err := net.Listen("tcp", httpflvAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	hdlServer := httpflv.NewServer(stream)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Error("HTTP-FLV server panic: ", r)
-			}
-		}()
-		log.Info("HTTP-FLV listen On ", httpflvAddr)
-		hdlServer.Serve(flvListen)
-	}()
 }
 
 func startAPI(stream *rtmp.RtmpStream) {
@@ -138,17 +91,11 @@ func main() {
 	configure.Config.UnmarshalKey("server", &apps)
 	for _, app := range apps {
 		stream := rtmp.NewRtmpStream()
-		var hlsServer *hls.Server
-		if app.Hls {
-			hlsServer = startHls()
-		}
-		if app.Flv {
-			startHTTPFlv(stream)
-		}
+
 		if app.Api {
 			startAPI(stream)
 		}
 
-		startRtmp(stream, hlsServer)
+		startRtmp(stream)
 	}
 }
