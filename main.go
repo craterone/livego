@@ -26,7 +26,6 @@ func startRtmp(stream *rtmp.RtmpStream) {
 	var rtmpServer *rtmp.Server
 
 	rtmpServer = rtmp.NewRtmpServer(stream, nil)
-	log.Info("HLS server disable....")
 
 	defer func() {
 		if r := recover(); r != nil {
